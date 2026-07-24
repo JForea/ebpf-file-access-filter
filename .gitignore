@@ -1,0 +1,9 @@
+# VS Code
+.vscode/
+compile_commands.json
+
+# CMake
+build/
+
+# eBPF
+vmlinux.h
