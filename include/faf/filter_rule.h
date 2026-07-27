@@ -5,9 +5,11 @@
 #include "linux/types.h"
 #endif
 
+#define MAX_FILE_PATH_SIZE 256
+
 struct filter_rule {
-    char* mask;
-    size_t mask_size;
+    char mask[MAX_FILE_PATH_SIZE];
+    __u32 mask_size;
 };
 
 

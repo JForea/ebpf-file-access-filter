@@ -1,18 +1,17 @@
 #include "helpers.bpf.h"
 
 #include "vmlinux.h"
-#include "common.bpf.h"
 
 #include <bpf/bpf_helpers.h>
 #include <faf/filter_rule.h>
 
 #ifndef SIZE_MAX
-    #define SIZE_MAX (~(size_t)0)
+#define SIZE_MAX ((__u32)0 - 1)
 #endif
 
 struct file_args {
-    char* file;
-    size_t size;
+    char *file;
+    __u32 size;
 };
 
 struct {
@@ -22,19 +21,20 @@ struct {
     __type(value, struct filter_rule);
 } masks SEC(".maps");
 
-long does_match(struct bpf_map *map, const void* key, const void* value, void *ctx) {
+static long does_match(struct bpf_map *map, const void* key, const void* value, void *ctx) {
     (void)map;
     (void)key;
+
     struct file_args *args = (struct file_args*)ctx;
     struct filter_rule *rule = (struct filter_rule*)value;
 
     char *mask = rule->mask,
          *file = args->file; 
-    size_t mask_size, file_size,
+    __u32 mask_size, file_size,
            i_mask, i_file,
            rb_mask, rb_file;
 
-    if (!mask || !args->file)
+    if (!args->file)
         return false;
 
     mask_size = rule->mask_size;

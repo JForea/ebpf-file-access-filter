@@ -1,13 +1,17 @@
 #include "vmlinux.h"
 
 #include "helpers.bpf.h"
-#include "common.bpf.h"
 
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
+#include <faf/filter_rule.h>
 
 #ifndef EACCES
 #define EACCES 13
+#endif
+
+#ifndef EFAULT
+#define EFAULT 14
 #endif
 
 extern int bpf_path_d_path(
@@ -32,7 +36,7 @@ int BPF_PROG(handle_file_open, struct file *file, int ret) {
     size = bpf_path_d_path(&file->f_path, path, MAX_FILE_PATH_SIZE);
 
     if (size < 0) {
-        return size;
+        return -EFAULT;
     }
 
     if (does_match_any(path, size)) {
