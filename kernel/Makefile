@@ -3,7 +3,7 @@ PROJECT_NAME := ebpf-file-access-filter
 SRC_DIR ?= src
 
 KERNEL_DIR ?= /lib/modules/$(shell uname -r)/build
-BUILD_DIR := $(CURDIR)/build
+BUILD_DIR := $(CURDIR)/../build
 INCLUDE_DIR := $(CURDIR)/../include
 
 CC := clang
@@ -14,10 +14,10 @@ VMLINUX_BTF ?= /sys/kernel/btf/vmlinux
 
 .PHONY: all clean
 
-all: $(BUILD_DIR)/faf.skel.h
+all: $(BUILD_DIR)/include/faf/skel.h
 
-$(BUILD_DIR)/faf.skel.h: $(BUILD_DIR)/faf.bpf.o
-	mkdir -p $(BUILD_DIR)
+$(BUILD_DIR)/include/faf/skel.h: $(BUILD_DIR)/faf.bpf.o
+	mkdir -p $(BUILD_DIR)/include/faf
 	bpftool gen skeleton $(BUILD_DIR)/faf.bpf.o > $@
 
 $(BUILD_DIR)/faf.bpf.o: $(BUILD_DIR)/main.bpf.o $(BUILD_DIR)/helpers.bpf.o
