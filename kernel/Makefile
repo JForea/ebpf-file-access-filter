@@ -20,17 +20,21 @@ $(BUILD_DIR)/include/faf/skel.h: $(BUILD_DIR)/faf.bpf.o
 	mkdir -p $(BUILD_DIR)/include/faf
 	bpftool gen skeleton $(BUILD_DIR)/faf.bpf.o > $@
 
-$(BUILD_DIR)/faf.bpf.o: $(BUILD_DIR)/main.bpf.o $(BUILD_DIR)/helpers.bpf.o
-	mkdir -p $(BUILD_DIR)
-	bpftool gen object $@ $(BUILD_DIR)/main.bpf.o $(BUILD_DIR)/helpers.bpf.o
+# $(BUILD_DIR)/faf.bpf.o: $(BUILD_DIR)/main.bpf.o $(BUILD_DIR)/helpers.bpf.o
+# 	mkdir -p $(BUILD_DIR)
+# 	bpftool gen object $@ $(BUILD_DIR)/main.bpf.o $(BUILD_DIR)/helpers.bpf.o
 
-$(BUILD_DIR)/main.bpf.o: $(SRC_DIR)/vmlinux.h
+# $(BUILD_DIR)/main.bpf.o: $(SRC_DIR)/vmlinux.h
+# 	mkdir -p $(BUILD_DIR)
+# 	$(CC) $(CFLAGS) -target bpf -O2 -g -c $(SRC_DIR)/main.bpf.c -o $@
+
+$(BUILD_DIR)/faf.bpf.o: $(SRC_DIR)/vmlinux.h
 	mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) -target bpf -O2 -g -c $(SRC_DIR)/main.bpf.c -o $@
 
-$(BUILD_DIR)/helpers.bpf.o:
-	mkdir -p $(BUILD_DIR)
-	$(CC) $(CFLAGS) -target bpf -O2 -g -c $(SRC_DIR)/helpers.bpf.c -o $@
+# $(BUILD_DIR)/helpers.bpf.o:
+# 	mkdir -p $(BUILD_DIR)
+# 	$(CC) $(CFLAGS) -target bpf -O2 -g -c $(SRC_DIR)/helpers.bpf.c -o $@
 
 $(SRC_DIR)/vmlinux.h:
 	@if [ -f "$(VMLINUX_BTF)" ]; then \

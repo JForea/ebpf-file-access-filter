@@ -5,7 +5,8 @@
 #include "linux/types.h"
 #endif
 
-#define MAX_FILE_PATH_SIZE 256
+#define MAX_FILE_PATH_SIZE 255
+#define MAX_MASK_SIZE 255
 
 struct filter_rule {
     char mask[MAX_FILE_PATH_SIZE];
