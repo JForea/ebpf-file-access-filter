@@ -9,7 +9,7 @@
 #define MAX_MASK_SIZE 255
 
 struct filter_rule {
-    char mask[MAX_FILE_PATH_SIZE];
+    char mask[MAX_MASK_SIZE];
     __u32 mask_size;
 };
 
