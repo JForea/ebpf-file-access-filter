@@ -2,7 +2,7 @@
 
 #include "Commands.hpp"
 #include "Helpers.hpp"
-#include "BpfHelpers.hpp"
+#include "BpfHelper.hpp"
 #include "FileHelpers.hpp"
 
 const std::string WrongUsage = "Wrong usage: faf [command]\n";
@@ -17,6 +17,8 @@ int main(int argc, char* argv[]){
     Command cmd = ParseCommand(argv[1]);
 
     try {
+        BpfHelper bpfHelper(GetMasksMapPath().c_str());
+
         switch (cmd) {
         case Command::Help:
             std::cout << "faf command list:\n" <<
@@ -34,7 +36,7 @@ int main(int argc, char* argv[]){
                 return 1;
             }
 
-            AddMask(argv[2]);
+            bpfHelper.AddMask(argv[2]);
             WriteMaskToFile(argv[2]);
 
             std::cout << "Added.\n";
@@ -46,7 +48,7 @@ int main(int argc, char* argv[]){
                 return 1;
             }
 
-            RemoveMask(argv[2]);
+            bpfHelper.RemoveMask(argv[2]);
             RemoveMaskFromFile(argv[2]);
 
             std::cout << "Removed.\n";
@@ -63,7 +65,7 @@ int main(int argc, char* argv[]){
         }
 
         case Command::Clear:
-            ClearMasks();
+            bpfHelper.ClearMasks();
             RemoveAllMasksFromFile();
 
             std::cout << "Cleared.\n";
@@ -71,11 +73,11 @@ int main(int argc, char* argv[]){
             return 0;
 
         case Command::Reload: {
-            ClearMasks();
+            bpfHelper.ClearMasks();
             auto masks = ReadMasksFromFile();
 
             for (std::string mask : masks)
-                AddMask(mask.c_str());
+                bpfHelper.AddMask(mask.c_str());
 
             std::cout << "Loaded.\n";
 
