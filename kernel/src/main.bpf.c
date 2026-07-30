@@ -7,6 +7,8 @@
 #define INVALID_RB_MASK ((__u8)255)
 #define INVALID_RB_FILE ((__u8)255)
 
+#define MAX_ITERATION_NUMBER 1000000U
+
 #ifndef EACCES
 #define EACCES 13
 #endif
@@ -27,6 +29,7 @@ static long does_match(
 struct file_args {
     char file[MAX_FILE_PATH_SIZE];
     __u8 size;
+    __u8 matched;
 };
 
 struct iterate_file_args {
@@ -61,7 +64,7 @@ int BPF_PROG(handle_file_open, struct file *file, int ret) {
     (void)ctx;
 
     struct file_args args;
-    long match;
+    long err;
 
     if (ret != 0) {
         return ret;
@@ -73,9 +76,18 @@ int BPF_PROG(handle_file_open, struct file *file, int ret) {
         return -EINVAL;
     }
 
-    match = bpf_for_each_map_elem(&masks, does_match, &args, 0);
+    --args.size;
 
-    if (match) {
+    args.matched = 0;
+
+    err = bpf_for_each_map_elem(&masks, does_match, &args, 0);
+
+    if (err < 0) {
+        bpf_printk("%s: Something went wrong: %d.\n", args.file, err);
+        return 0;
+    }
+
+    if (args.matched) {
         return -EACCES;
     }
 
@@ -91,7 +103,8 @@ long does_match(
     (void)map;
     (void)key;
 
-    const struct file_args *args = ctx;
+    int n;
+    struct file_args *args = ctx;
     const struct filter_rule *rule = value;
 
     struct iterate_file_args iterate_file_args = {
@@ -106,39 +119,34 @@ long does_match(
         .error_occured = 0,
     };
 
-    // __u32 mask_size = rule->mask_size, 
-    //       file_size = args->size,
-    //       i_mask = 0,
-    //       i_file = 0,
-    //       rb_mask = SIZE_MAX,
-    //       rb_file = SIZE_MAX;
+    n = bpf_loop(
+        MAX_ITERATION_NUMBER, 
+        iterate_file, 
+        &iterate_file_args, 
+        0
+    );
 
-    bpf_loop(1e6, iterate_file, &iterate_file_args, 0);
-    // while (i_file < file_size) {
-    //     if (i_mask < mask_size && rule->mask[i_mask] == '*') {
-    //         while (i_mask + 1 < mask_size && rule->mask[i_mask + 1] == '*') {
-    //             ++i_mask;
-    //         }
+    if (n < 0) {
+        bpf_printk("%s: Error during loop: %d\n", args->file, n);
+    }
 
-    //         rb_file = i_file;
-    //         rb_mask = i_mask;
+    if ((__u32)n >= MAX_ITERATION_NUMBER) {
+        bpf_printk("%s: Loop limit exceeded: %d\n", args->file, n);
+    }
 
-    //         ++i_mask;
-    //     } else if (i_mask < mask_size &&
-    //             (rule->mask[i_mask] == '?' || rule->mask[i_mask] == args->file[i_file])) {
-    //         ++i_mask;
-    //         ++i_file;
-    //     } else {
-    //         if (rb_mask == SIZE_MAX) {
-    //             return 0;
-    //         }
-
-    //         i_file = ++rb_file;
-    //         i_mask = rb_mask + 1;
-    //     }
-    // }
+    bpf_printk("%s: i_file=%u/%u i_mask=%u/%u rb_file=%u rb_mask=%u err=%u\n",
+        args->file,
+        iterate_file_args.i_file,
+        iterate_file_args.file_size,
+        iterate_file_args.i_mask,
+        iterate_file_args.mask_size,
+        iterate_file_args.rb_file,
+        iterate_file_args.rb_mask,
+        iterate_file_args.error_occured
+    );
 
     if (iterate_file_args.error_occured) {
+        bpf_printk("%s: Error occured.\n", args->file);
         return 0;
     }
 
@@ -153,8 +161,12 @@ long does_match(
     }
 
     if (iterate_file_args.i_mask == iterate_file_args.mask_size) {
+        bpf_printk("%s: Matched.\n", args->file);
+        args->matched = 1;
         return 1;
     }
+
+    bpf_printk("%s: Didn't match.\n", args->file);
 
     return 0;
 }
@@ -172,20 +184,12 @@ long iterate_file(__u64 index, void *ctx) {
         args->file_size = MAX_FILE_PATH_SIZE;
     }
 
-    if (args->i_file >= MAX_FILE_PATH_SIZE ||
-        args->i_mask >= MAX_MASK_SIZE ||
-        args->i_file >= args->file_size) {
+    if (args->i_file >= args->file_size) {
         return 1;
     }
 
     if (args->i_mask < args->mask_size && 
         args->rule->mask[args->i_mask] == '*') {
-        // while (args->i_mask < MAX_MASK_SIZE &&
-        //     args->i_mask + 1 < args->mask_size && 
-        //     args->rule->mask[args->i_mask + 1] == '*') {
-        //     ++args->i_mask;
-        // }
-
         args->rb_file = args->i_file;
         args->rb_mask = args->i_mask;
 

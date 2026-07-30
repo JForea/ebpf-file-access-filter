@@ -34,6 +34,7 @@ add_executable(faf-loader
 target_include_directories(faf-loader
     PRIVATE
         "${KERNEL_GENERATED_INCLUDE_DIR}"
+        "${INCLUDE_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}/shared"
 )
 
