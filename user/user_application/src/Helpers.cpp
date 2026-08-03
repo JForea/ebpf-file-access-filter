@@ -19,7 +19,7 @@ Command ParseCommand(const std::string& s) noexcept {
     return Command::Unrecognized;
 }
 
-std::filesystem::path GetMasksMapPath() {
+std::filesystem::path GetMasksMapPath() noexcept {
     std::filesystem::path path = bpf_folder_path;
     path /= masks_map_name;
     return path;
