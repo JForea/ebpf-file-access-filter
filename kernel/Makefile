@@ -22,7 +22,8 @@ $(BUILD_DIR)/include/faf/skel.h: $(BUILD_DIR)/faf.bpf.o
 
 $(BUILD_DIR)/faf.bpf.o: $(SRC_DIR)/vmlinux.h
 	mkdir -p $(BUILD_DIR)
-	$(CC) $(CFLAGS) -target bpf -O2 -g -c $(SRC_DIR)/main.bpf.c -o $@
+# 	$(CC) $(CFLAGS) -target bpf -O2 -g -c $(SRC_DIR)/lsm.bpf.c -o $@
+	$(CC) $(CFLAGS) -target bpf -O2 -g -c $(SRC_DIR)/fmod_ret.bpf.c -o $@
 
 $(SRC_DIR)/vmlinux.h:
 	@if [ -f "$(VMLINUX_BTF)" ]; then \
