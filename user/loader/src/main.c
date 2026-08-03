@@ -47,9 +47,12 @@ int main() {
 	char map_pin_path[MAX_FILE_PATH_SIZE],
 		 link_pin_path[MAX_FILE_PATH_SIZE];
     struct faf_bpf *skel;
-	int err;
-	int n;
-
+	int err,
+		n,
+		link_pinned = 0,
+		map_pinned = 0,
+		unpin_err;
+	
 	/* Set up libbpf errors and debug info callback */
     libbpf_set_print(libbpf_print_fn);
 
@@ -65,12 +68,12 @@ int main() {
 		goto cleanup;
 	}
 
-	err = snprintf(
+	n = snprintf(
 		map_pin_path, 
 		MAX_FILE_PATH_SIZE, 
 		"%s/%s", bpf_folder_path, masks_map_name
 	);
-	if (err < 0) {
+	if (n < 0) {
 		fprintf(stderr, "Failed to concatenate strings.\n");
 		goto cleanup;
 	}
@@ -83,9 +86,13 @@ int main() {
 		fprintf(stderr, "Failed to pin map.\n");
     	goto cleanup;
 	}
+	map_pinned = 1;
 
 #ifdef BPF_TEST
-	add_test_rule(skel);
+	err = add_test_rule(skel);
+	if (err) {
+		goto cleanup;
+	}
 #endif
 
 	err = faf_bpf__attach(skel);
@@ -115,8 +122,27 @@ int main() {
         fprintf(stderr, "Failed to pin link.\n");
         goto cleanup;
     }
+	link_pinned = 1;
 
 cleanup:
+	if (err) {
+		if (link_pinned) {
+			unpin_err = bpf_link__unpin(skel->links.handle_file_open);
+		}
+
+		if (unpin_err) {
+        	fprintf(stderr, "Failed to unpin link: %s\n", strerror(-unpin_err));
+		}
+
+		if (map_pinned) {
+			unpin_err = bpf_map__unpin(skel->maps.masks, map_pin_path);
+		}
+
+		if (unpin_err) {
+        	fprintf(stderr, "Failed to unpin map: %s\n", strerror(-unpin_err));
+		}
+	}
+
 	faf_bpf__destroy(skel);
 
 	return err < 0 ? -err : 0;
