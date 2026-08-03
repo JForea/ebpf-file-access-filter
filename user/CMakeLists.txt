@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.10.0)
 project(ebpf-file-access-filter VERSION 0.1.0 LANGUAGES C CXX)
 
+set(INCLUDE_DIR
+    "${CMAKE_CURRENT_SOURCE_DIR}/../include"
+)
+
+# Loader
+
 set(KERNEL_GENERATED_INCLUDE_DIR
     "${CMAKE_CURRENT_SOURCE_DIR}/../build/include"
 )
@@ -14,10 +20,6 @@ endif()
 
 set(FAF_SKEL_HEADER
     "${KERNEL_GENERATED_INCLUDE_DIR}/faf/skel.h"
-)
-
-set(INCLUDE_DIR
-    "${CMAKE_CURRENT_SOURCE_DIR}/../include"
 )
 
 if(NOT EXISTS "${FAF_SKEL_HEADER}")
@@ -41,8 +43,26 @@ target_include_directories(faf-loader
 target_link_libraries(faf-loader
     PRIVATE
         bpf
-        elf
-        z
+)
+
+# User application
+
+add_executable(faf
+    user_application/src/main.cpp
+    user_application/src/Helpers.cpp
+    user_application/src/FileHelpers.cpp
+    user_application/src/BpfHelper.cpp
+)
+
+target_include_directories(faf
+    PRIVATE
+        "${INCLUDE_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/shared"
+)
+
+target_link_libraries(faf
+    PRIVATE
+        bpf
 )
 
 include(CTest)
